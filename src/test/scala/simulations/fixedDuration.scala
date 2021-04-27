@@ -6,15 +6,16 @@ import io.gatling.http.Predef._
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-class basicLoadProfile extends Simulation {
+class fixedDuration extends Simulation {
+
   val httpConf = http.baseUrl("http://localhost:8080/app/")
     .header("Accept", "application/json")
 
   def getAllVideoGames() ={
     exec(
       http("Get all Video Games")
-      .get("videogames")
-      .check(status.is(200))
+        .get("videogames")
+        .check(status.is(200))
     )
   }
 
@@ -27,17 +28,21 @@ class basicLoadProfile extends Simulation {
   }
 
   val scn = scenario("Basic Load Similation")
-    .exec(getAllVideoGames())
-    .pause(5)
-    .exec(getSpecificGame())
-    .pause(5)
-    .exec(getAllVideoGames())
+    .forever(){
+      exec(getAllVideoGames())
+        .pause(5)
+        .exec(getSpecificGame())
+        .pause(5)
+        .exec(getAllVideoGames())
+    }
+
 
   setUp(
     scn.inject(
       nothingFor(5 seconds),
-      atOnceUsers(5),
-      rampUsers(100) during (10 seconds)
+      atOnceUsers(10),
+      rampUsers(50) during (30 second)
     ).protocols(httpConf.inferHtmlResources())
-  )
+  ).maxDuration(1 minute)
+
 }
